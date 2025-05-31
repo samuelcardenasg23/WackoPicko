@@ -2,122 +2,24 @@
 
 namespace: wackopicko
 
-strict: true
-
 output:
   file_path: ./Fluid-Attacks-Results.csv
   format: CSV
 
 working_dir: .
-
-include:
-  - .
-
-checks:
-  - F001  # SQL Injection
-  - F004  # Cross-Site Scripting (XSS)
-  - F008  # Insecure direct object references
-  - F009  # Authentication bypass
-  - F010  # Session management
-  - F011  # Authorization flaws
-  - F012  # Information disclosure
-  - F015  # Business logic errors
-  - F016  # File inclusion vulnerabilities
-  - F017  # Remote code execution
-  - F020  # Insecure cryptographic storage
-  - F021  # Insufficient transport layer protection
-  - F022  # Unvalidated redirects and forwards
-  - F023  # Insecure components
-  - F031  # Privilege escalation
-  - F034  # Path traversal
-  - F035  # Command injection
-  - F037  # Cross-Site Request Forgery (CSRF)
-  - F042  # Insecure randomness
-  - F043  # Hard-coded credentials
-  - F052  # Weak authentication
-  - F055  # Server-side request forgery
-  - F056  # XML external entity (XXE)
-  - F058  # LDAP injection
-  - F073  # Insecure deserialization
-  - F075  # Improper input validation
-  - F079  # Improper access control
-  - F080  # Missing encryption
-  - F082  # Certificate validation
-  - F085  # Insecure HTTP methods
-  - F086  # Sensitive data exposure
-  - F089  # Weak SSL/TLS configuration
-  - F091  # Insecure file permissions
-  - F092  # Missing security headers
-  - F094  # Code injection
-  - F096  # Insecure configuration
-  - F098  # Information leakage
-  - F099  # Weak passwords
-  - F100  # Missing authentication
-  - F103  # Clickjacking
-  - F107  # DNS spoofing
-  - F112  # Missing authorization
-  - F120  # Weak encryption
-  - F127  # Path manipulation
-  - F128  # Resource injection
-  - F129  # Trust boundary violation
-  - F130  # Missing data validation
-  - F131  # Improper certificate validation
-  - F132  # Weak hash algorithms
-  - F133  # Missing input sanitization
-  - F134  # Improper error handling
-  - F143  # Unsafe reflection
-  - F160  # Insecure dependencies
-  - F176  # Weak session tokens
-  - F177  # Missing rate limiting
-  - F182  # Insecure API endpoints
-  - F200  # Missing HTTPS enforcement
-  - F203  # Insecure cookie settings
-  - F206  # Missing CSRF protection
-  - F207  # Weak password policies
-  - F211  # Missing access logging
-  - F234  # Insecure file uploads
-  - F239  # Missing security patches
-  - F246  # Weak access controls
-  - F247  # Insecure data storage
-  - F250  # Missing input validation
-  - F252  # Weak authentication mechanisms
-  - F256  # Insecure communication
-  - F257  # Missing authorization checks
-  - F258  # Weak session management
-  - F259  # Insecure configuration files
-  - F266  # Missing security logging
-  - F267  # Weak encryption implementation
-  - F268  # Insecure API design
-  - F277  # Missing security controls
-  - F281  # Weak access verification
-  - F300  # Insecure default settings
-  - F313  # Missing security updates
-  - F320  # Weak authentication protocols
-  - F325  # Insecure data transmission
-  - F333  # Missing authorization controls
-  - F335  # Weak security implementation
-  - F338  # Insecure service configuration
-  - F346  # Missing security validation
-  - F363  # Weak security measures
-  - F372  # Insecure application design
-  - F380  # Missing security enforcement
-  - F381  # Weak security architecture
-  - F393  # Insecure system configuration
-  - F394  # Missing security monitoring
-  - F396  # Weak security policies
-  - F398  # Insecure deployment
-  - F400  # Missing security testing
-  - F401  # Weak security practices
-  - F402  # Insecure development practices
-  - F406  # Missing security documentation
-  - F407  # Weak security training
-  - F408  # Insecure security processes
-  - F409  # Missing security reviews
-  - F411  # Weak security standards
-  - F412  # Insecure security implementation
-  - F413  # Missing security guidelines
-  - F414  # Weak security procedures
-  - F416  # Insecure security protocols
-  - F418  # Missing security compliance
-
-language: EN 
+language: EN
+sast:
+  include:
+    - .
+  exclude:
+    - glob(**/node_modules/**)
+    - glob(**/test/**)
+    - glob(**/.git/**)
+    - glob(**/vendor/**)
+    - glob(**/logs/**)
+    - glob(**/tmp/**)
+    - glob(**/cache/**)
+    - glob(**/dist/**)
+    - glob(**/build/**)
+    - glob(**/*.min.js)
+    - glob(**/*.min.css) 
