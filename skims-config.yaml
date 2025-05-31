@@ -19,11 +19,10 @@ output:
 # Working directory: Root directory to scan from
 working_dir: .
 
-# Path configuration: What to include in the scan
-path:
-  include:
-    # Scan all files in the current directory recursively
-    - .
+# What to include in the scan - corrected format
+include:
+  # Scan all files in the current directory recursively
+  - .
   
 # Security checks to perform
 # These are the main vulnerability types that Skims will check for
