@@ -27,15 +27,15 @@ jobs:
 
       # Step 2: Run Fluid Attacks scan (CSV output)
       - name: Skims scan (CSV output)
-        uses: docker://docker.io/fluidattacks/skims:latest
+        uses: docker://ghcr.io/fluidattacks/makes/amd64:latest
         with:
-          args: skims scan --output results.csv .
+          args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.csv .
 
       # Step 3: Run Fluid Attacks scan (JSON output)
       - name: Skims scan (JSON output)
-        uses: docker://docker.io/fluidattacks/skims:latest
+        uses: docker://ghcr.io/fluidattacks/makes/amd64:latest
         with:
-          args: skims scan --output results.json --format json .
+          args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.json --format json .
 
       # Step 4: Upload CSV results
       - name: Upload CSV results

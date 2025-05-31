@@ -2,7 +2,11 @@
 
 ## 🛡️ Overview
 
-Este proyecto incluye un pipeline de seguridad simple que utiliza **Fluid Attacks Skims** usando la imagen oficial exactamente como aparece en su documentación.
+Este proyecto incluye un pipeline de seguridad que utiliza **Fluid Attacks Skims** a través de la imagen **makes** que es la que funciona correctamente con los parámetros estándar.
+
+## ⚠️ Important Note
+
+Aunque la documentación oficial menciona `docker.io/fluidattacks/skims:latest`, hemos encontrado que esta imagen no soporta la flag `--output`. Por eso usamos `ghcr.io/fluidattacks/makes/amd64:latest` que incluye Skims con todas las funcionalidades.
 
 ## 🔧 How It Works
 
@@ -11,23 +15,23 @@ Este proyecto incluye un pipeline de seguridad simple que utiliza **Fluid Attack
 - **Pull Requests**: En cada PR hacia main/master
 - **Manual Execution**: Puede ejecutarse manualmente desde GitHub Actions
 
-### Simple Pipeline Structure
+### Working Pipeline Structure
 ```yaml
-# Usando la imagen oficial de Fluid Attacks
+# Usando la imagen makes que funciona correctamente
 - name: Checkout repository
   uses: actions/checkout@v4
 
 # Generar reporte CSV
 - name: Skims scan (CSV output)
-  uses: docker://docker.io/fluidattacks/skims:latest
+  uses: docker://ghcr.io/fluidattacks/makes/amd64:latest
   with:
-    args: skims scan --output results.csv .
+    args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.csv .
 
 # Generar reporte JSON
 - name: Skims scan (JSON output)
-  uses: docker://docker.io/fluidattacks/skims:latest
+  uses: docker://ghcr.io/fluidattacks/makes/amd64:latest
   with:
-    args: skims scan --output results.json --format json .
+    args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.json --format json .
 
 # Subir ambos formatos
 - name: Upload CSV results
@@ -65,13 +69,13 @@ Skims automatically detects and scans:
 ```bash
 # Ejecutar localmente con CSV
 docker run --rm -v $(pwd):/workspace \
-  docker.io/fluidattacks/skims:latest \
-  skims scan --output results.csv /workspace
+  ghcr.io/fluidattacks/makes/amd64:latest \
+  m gitlab:fluidattacks/universe@trunk /skims scan --output results.csv /workspace
 
 # Ejecutar localmente con JSON
 docker run --rm -v $(pwd):/workspace \
-  docker.io/fluidattacks/skims:latest \
-  skims scan --output results.json --format json /workspace
+  ghcr.io/fluidattacks/makes/amd64:latest \
+  m gitlab:fluidattacks/universe@trunk /skims scan --output results.json --format json /workspace
 ```
 
 ## 📈 Expected Results for WackoPicko
@@ -84,12 +88,28 @@ Dado que WackoPicko es una aplicación intencionalmente vulnerable, deberías ve
 4. **Command Injection**
 5. **Weak Authentication**
 
+## 🔍 Why We Use Makes Image
+
+### ❌ Problem with Official Image
+```bash
+# Esta imagen NO funciona con --output
+docker.io/fluidattacks/skims:latest
+# Error: No such option: --output
+```
+
+### ✅ Solution with Makes Image
+```bash
+# Esta imagen SÍ funciona con todos los parámetros
+ghcr.io/fluidattacks/makes/amd64:latest
+# Funciona correctamente con --output y --format
+```
+
 ## 🎯 Benefits of This Approach
 
 ### ✅ Advantages:
-- **Imagen oficial** - Usa `docker.io/fluidattacks/skims:latest` como en la documentación
+- **Funciona correctamente** - Soporta todas las opciones necesarias
 - **Dos formatos** - CSV para análisis rápido, JSON para procesamiento automático
-- **Comando simple** - Usa `skims scan` directamente sin wrappers
+- **Imagen estable** - Parte del ecosistema oficial de Fluid Attacks
 - **Artifacts separados** - Fácil descarga de cada formato
 
 ### 📝 What You Get:
@@ -106,7 +126,7 @@ Cross-site scripting,CWE-79,"XSS vulnerability",7.5,7.1,F004,website/test.php,li
   "vulnerabilities": [
     {
       "title": "Cross-site scripting",
-      "cwe": "CWE-79",
+      "cwe": "CWE-79", 
       "description": "XSS vulnerability",
       "cvss": 7.5,
       "file": "website/test.php",
@@ -121,14 +141,13 @@ Cross-site scripting,CWE-79,"XSS vulnerability",7.5,7.1,F004,website/test.php,li
 ### Escanear solo un directorio específico:
 ```yaml
 # Solo escanear la carpeta website/
-args: skims scan --output results.csv ./website
+args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.csv ./website
 ```
 
-### Agregar más formatos o opciones:
+### Agregar más opciones:
 ```yaml
 # Diferentes opciones de salida
-args: skims scan --output results.csv --verbose .
-args: skims scan --output results.xml --format xml .
+args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.csv --verbose .
 ```
 
 ## 🆘 Troubleshooting
@@ -148,10 +167,14 @@ find . -name "*.php" -type f
 cat website/test.php
 
 # Verificar resultados localmente (CSV)
-docker run --rm -v $(pwd):/workspace docker.io/fluidattacks/skims:latest skims scan --output test.csv /workspace/website/test.php
+docker run --rm -v $(pwd):/workspace \
+  ghcr.io/fluidattacks/makes/amd64:latest \
+  m gitlab:fluidattacks/universe@trunk /skims scan --output test.csv /workspace/website/test.php
 
 # Verificar resultados localmente (JSON)
-docker run --rm -v $(pwd):/workspace docker.io/fluidattacks/skims:latest skims scan --output test.json --format json /workspace/website/test.php
+docker run --rm -v $(pwd):/workspace \
+  ghcr.io/fluidattacks/makes/amd64:latest \
+  m gitlab:fluidattacks/universe@trunk /skims scan --output test.json --format json /workspace/website/test.php
 ```
 
 ## 📚 Learning Resources
@@ -184,4 +207,4 @@ docker run --rm -v $(pwd):/workspace docker.io/fluidattacks/skims:latest skims s
 
 ---
 
-**Recuerda**: Ahora tienes lo mejor de ambos mundos - la imagen oficial de Fluid Attacks y reportes en ambos formatos más utilizados. 
+**Nota importante**: Aunque la documentación oficial menciona `docker.io/fluidattacks/skims:latest`, esta imagen tiene limitaciones. La imagen `makes` es más completa y funcional para CI/CD. 
