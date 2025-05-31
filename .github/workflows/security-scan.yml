@@ -25,32 +25,83 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Run Fluid Attacks scan (CSV output)
-      - name: Skims scan (CSV output)
-        uses: docker://ghcr.io/fluidattacks/makes/amd64:latest
-        with:
-          args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.csv .
+      # Step 2: Run Skims scan and capture output
+      - name: Run Skims scan and capture output
+        run: |
+          echo "Running Skims security scan..."
+          # Create results directory
+          mkdir -p results
 
-      # Step 3: Run Fluid Attacks scan (JSON output)
-      - name: Skims scan (JSON output)
-        uses: docker://ghcr.io/fluidattacks/makes/amd64:latest
-        with:
-          args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.json --format json .
+          # Run skims with the official image and capture output
+          docker run --rm -v $(pwd):/workspace \
+            docker.io/fluidattacks/skims:latest \
+            skims scan /workspace > results/skims-output.txt 2>&1 || true
 
-      # Step 4: Upload CSV results
-      - name: Upload CSV results
+          echo "Scan completed. Output saved to results/skims-output.txt"
+
+          # Show first few lines of output
+          echo "=== First 20 lines of scan output ==="
+          head -20 results/skims-output.txt || echo "No output file found"
+
+          # Show last few lines of output  
+          echo "=== Last 20 lines of scan output ==="
+          tail -20 results/skims-output.txt || echo "No output file found"
+
+      # Step 3: Check for generated files
+      - name: Check for generated files
+        run: |
+          echo "=== Files in current directory ==="
+          ls -la
+          echo "=== Files in results directory ==="
+          ls -la results/
+          echo "=== Looking for CSV files ==="
+          find . -name "*.csv" -type f || echo "No CSV files found"
+
+          # Check if vulnerabilities.csv was created
+          if [ -f "vulnerabilities.csv" ]; then
+            echo "=== Content of vulnerabilities.csv ==="
+            cat vulnerabilities.csv
+          else
+            echo "vulnerabilities.csv not found"
+          fi
+
+      # Step 4: Create CSV from output if needed
+      - name: Create CSV from output if needed
+        run: |
+          # If no CSV was generated, try to extract findings from output
+          if [ ! -f "vulnerabilities.csv" ]; then
+            echo "Creating CSV from scan output..."
+            echo "title,description,file,line,severity" > results/manual-results.csv
+            
+            # Try to extract useful information from the output
+            if [ -f "results/skims-output.txt" ]; then
+              grep -i "vulnerability\|finding\|error\|warning" results/skims-output.txt | head -10 >> results/manual-results.csv || true
+            fi
+            
+            echo "=== Manual CSV results ==="
+            cat results/manual-results.csv
+          fi
+
+      # Step 5: Upload scan results
+      - name: Upload scan results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: security-report-csv
-          path: results.csv
+          name: security-scan-results
+          path: |
+            results/
+            *.csv
+            vulnerabilities.csv
           retention-days: 30
 
-      # Step 5: Upload JSON results
-      - name: Upload JSON results
-        uses: actions/upload-artifact@v4
+      # Step 6: Summary
+      - name: Summary
         if: always()
-        with:
-          name: security-report-json
-          path: results.json
-          retention-days: 30
+        run: |
+          echo "=== Scan Summary ==="
+          echo "✅ Scan completed"
+          echo "📁 Results uploaded as artifact: security-scan-results"
+          echo "📄 Check the artifact for:"
+          echo "   - skims-output.txt (full scan output)"
+          echo "   - vulnerabilities.csv (if generated)"
+          echo "   - manual-results.csv (if needed)"

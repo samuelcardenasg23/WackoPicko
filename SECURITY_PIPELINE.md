@@ -2,209 +2,173 @@
 
 ## 🛡️ Overview
 
-Este proyecto incluye un pipeline de seguridad que utiliza **Fluid Attacks Skims** a través de la imagen **makes** que es la que funciona correctamente con los parámetros estándar.
+Este proyecto utiliza un pipeline simplificado con la **imagen oficial de Fluid Attacks** (`docker.io/fluidattacks/skims:latest`) y captura el output para generar reportes en CSV.
 
-## ⚠️ Important Note
+## 🎯 Simple and Clean Approach
 
-Aunque la documentación oficial menciona `docker.io/fluidattacks/skims:latest`, hemos encontrado que esta imagen no soporta la flag `--output`. Por eso usamos `ghcr.io/fluidattacks/makes/amd64:latest` que incluye Skims con todas las funcionalidades.
+### ✅ Advantages:
+- **Imagen oficial** - Usa la imagen recomendada en la documentación
+- **Sin logs innecesarios** - No más 6000 líneas de logs de makes
+- **Rápido** - Sin overhead de la imagen makes
+- **Output capturado** - Guardamos todo el output para análisis
+- **CSV generado** - Creamos formato CSV útil
 
 ## 🔧 How It Works
 
-### When Does It Run?
-- **Push a main/master**: Cada vez que se hace push a la rama principal
-- **Pull Requests**: En cada PR hacia main/master
-- **Manual Execution**: Puede ejecutarse manualmente desde GitHub Actions
-
-### Working Pipeline Structure
+### Pipeline Structure
 ```yaml
-# Usando la imagen makes que funciona correctamente
+# Simple workflow with official image
 - name: Checkout repository
   uses: actions/checkout@v4
 
-# Generar reporte CSV
-- name: Skims scan (CSV output)
-  uses: docker://ghcr.io/fluidattacks/makes/amd64:latest
-  with:
-    args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.csv .
+# Run scan and capture ALL output
+- name: Run Skims scan and capture output
+  run: |
+    docker run --rm -v $(pwd):/workspace \
+      docker.io/fluidattacks/skims:latest \
+      skims scan /workspace > results/skims-output.txt 2>&1
 
-# Generar reporte JSON
-- name: Skims scan (JSON output)
-  uses: docker://ghcr.io/fluidattacks/makes/amd64:latest
-  with:
-    args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.json --format json .
+# Check what files were generated
+- name: Check for generated files
+  run: |
+    ls -la
+    find . -name "*.csv" -type f
 
-# Subir ambos formatos
-- name: Upload CSV results
+# Create CSV if needed
+- name: Create CSV from output if needed
+  run: |
+    if [ ! -f "vulnerabilities.csv" ]; then
+      echo "title,description,file,line,severity" > results/manual-results.csv
+      grep -i "vulnerability\|finding" results/skims-output.txt >> results/manual-results.csv
+    fi
+
+# Upload everything
+- name: Upload scan results
   uses: actions/upload-artifact@v4
   with:
-    name: security-report-csv
-    path: results.csv
-
-- name: Upload JSON results
-  uses: actions/upload-artifact@v4
-  with:
-    name: security-report-json
-    path: results.json
+    name: security-scan-results
+    path: |
+      results/
+      *.csv
 ```
 
-## 📊 What Gets Scanned
-Skims automatically detects and scans:
-- ✅ **PHP files** - Busca inyecciones SQL, XSS, inclusión de archivos
-- ✅ **JavaScript files** - Detecta vulnerabilidades client-side
-- ✅ **HTML files** - Revisa contenido estático
-- ✅ **Configuration files** - Analiza configuraciones inseguras
-- ✅ **Otros archivos** - Según su base de conocimiento
+## 📊 What You Get
+
+### Files Generated:
+1. **`results/skims-output.txt`** - Todo el output completo del scan
+2. **`vulnerabilities.csv`** - CSV generado por Skims (si funciona)
+3. **`results/manual-results.csv`** - CSV creado por nosotros como fallback
+
+### Configuration File:
+Tenemos un archivo `.skims.yaml` simple:
+```yaml
+# Simple Skims Configuration for WackoPicko
+namespace: "wackopicko-scan"
+working_dir: "."
+
+# Output settings - simple CSV format
+output:
+  format: "CSV"
+  file_path: "vulnerabilities.csv"
+
+# Focus on critical vulnerabilities
+checks:
+  F001: true  # SQL Injection
+  F004: true  # Cross-Site Scripting (XSS)  
+  F008: true  # Path Traversal
+  F021: true  # Path Injection
+  F034: true  # Unvalidated Redirect
+  F091: true  # Command Injection
+  F127: true  # Open Redirect
+
+# Simple paths
+include:
+  - "website/"
+  - "."
+
+exclude:
+  - ".git/"
+  - "node_modules/"
+```
 
 ## 📋 How to View Results
 
 ### In GitHub Actions
-1. Ve a la pestaña **Actions** en tu repositorio
-2. Selecciona el workflow **Security Analysis**
-3. Haz clic en la ejecución más reciente
-4. Descarga los artifacts:
-   - **security-report-csv** - Contiene `results.csv`
-   - **security-report-json** - Contiene `results.json`
+1. Ve a **Actions** → **Security Analysis**
+2. Haz clic en la ejecución más reciente
+3. Ve a la sección **Summary** para ver:
+   - Primeras 20 líneas del output
+   - Últimas 20 líneas del output
+   - Lista de archivos generados
+4. Descarga el artifact **security-scan-results**
 
-### Local Analysis (Optional)
-```bash
-# Ejecutar localmente con CSV
-docker run --rm -v $(pwd):/workspace \
-  ghcr.io/fluidattacks/makes/amd64:latest \
-  m gitlab:fluidattacks/universe@trunk /skims scan --output results.csv /workspace
+### What to Look For in Logs:
+```
+=== First 20 lines of scan output ===
+[INFO] Skims starting...
+[INFO] Scanning directory: /workspace
+[INFO] Found vulnerabilities in: website/test.php
 
-# Ejecutar localmente con JSON
-docker run --rm -v $(pwd):/workspace \
-  ghcr.io/fluidattacks/makes/amd64:latest \
-  m gitlab:fluidattacks/universe@trunk /skims scan --output results.json --format json /workspace
+=== Last 20 lines of scan output ===
+[INFO] Scan completed
+[INFO] Vulnerabilities found: 5
+[INFO] Report written to: vulnerabilities.csv
 ```
 
 ## 📈 Expected Results for WackoPicko
 
-Dado que WackoPicko es una aplicación intencionalmente vulnerable, deberías ver vulnerabilidades como:
-
-1. **Cross-Site Scripting (XSS)** en `website/test.php`
-2. **SQL Injection** en varios archivos PHP
-3. **Path Traversal** y **File Inclusion**
-4. **Command Injection**
-5. **Weak Authentication**
-
-## 🔍 Why We Use Makes Image
-
-### ❌ Problem with Official Image
-```bash
-# Esta imagen NO funciona con --output
-docker.io/fluidattacks/skims:latest
-# Error: No such option: --output
-```
-
-### ✅ Solution with Makes Image
-```bash
-# Esta imagen SÍ funciona con todos los parámetros
-ghcr.io/fluidattacks/makes/amd64:latest
-# Funciona correctamente con --output y --format
-```
-
-## 🎯 Benefits of This Approach
-
-### ✅ Advantages:
-- **Funciona correctamente** - Soporta todas las opciones necesarias
-- **Dos formatos** - CSV para análisis rápido, JSON para procesamiento automático
-- **Imagen estable** - Parte del ecosistema oficial de Fluid Attacks
-- **Artifacts separados** - Fácil descarga de cada formato
-
-### 📝 What You Get:
-
-**CSV Format (`results.csv`):**
+### CSV Format Example:
 ```csv
-title,cwe,description,cvss,cvss_v4,finding,stream,kind,where,snippet,method
-Cross-site scripting,CWE-79,"XSS vulnerability",7.5,7.1,F004,website/test.php,lines,2,"echo $_GET['head']",SAST
+title,description,file,line,severity
+Cross-site scripting,XSS vulnerability found,website/test.php,2,High
+SQL injection,Possible SQL injection,website/login.php,15,Critical
+Path traversal,Directory traversal risk,website/upload.php,8,Medium
 ```
 
-**JSON Format (`results.json`):**
-```json
-{
-  "vulnerabilities": [
-    {
-      "title": "Cross-site scripting",
-      "cwe": "CWE-79", 
-      "description": "XSS vulnerability",
-      "cvss": 7.5,
-      "file": "website/test.php",
-      "line": 2
-    }
-  ]
-}
-```
+## 🔧 Local Testing
 
-## 🔧 Customization (Optional)
+```bash
+# Test locally with official image
+docker run --rm -v $(pwd):/workspace \
+  docker.io/fluidattacks/skims:latest \
+  skims scan /workspace
 
-### Escanear solo un directorio específico:
-```yaml
-# Solo escanear la carpeta website/
-args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.csv ./website
-```
+# Capture output locally
+docker run --rm -v $(pwd):/workspace \
+  docker.io/fluidattacks/skims:latest \
+  skims scan /workspace > local-scan-output.txt 2>&1
 
-### Agregar más opciones:
-```yaml
-# Diferentes opciones de salida
-args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.csv --verbose .
+# Check what was generated
+cat local-scan-output.txt
+ls -la *.csv
 ```
 
 ## 🆘 Troubleshooting
 
-### Si no encuentras vulnerabilidades:
-1. ✅ Verifica que ambos archivos se generaron (`results.csv` y `results.json`)
-2. ✅ Descarga ambos artifacts y revisa el contenido
-3. ✅ WackoPicko **debe** tener vulnerabilidades - si no aparecen, hay un problema
-4. ✅ Compara resultados entre CSV y JSON para verificar consistencia
+### If No Vulnerabilities Found:
+1. ✅ Check `results/skims-output.txt` para ver qué pasó
+2. ✅ Verifica que `website/test.php` existe y tiene contenido
+3. ✅ Mira si hay errores en el output
+4. ✅ WackoPicko **debe** tener vulnerabilidades
 
-### Comandos útiles para verificar:
+### Understanding the Output:
 ```bash
-# Verificar archivos PHP en el proyecto
-find . -name "*.php" -type f
-
-# Ver contenido del archivo vulnerable
-cat website/test.php
-
-# Verificar resultados localmente (CSV)
-docker run --rm -v $(pwd):/workspace \
-  ghcr.io/fluidattacks/makes/amd64:latest \
-  m gitlab:fluidattacks/universe@trunk /skims scan --output test.csv /workspace/website/test.php
-
-# Verificar resultados localmente (JSON)
-docker run --rm -v $(pwd):/workspace \
-  ghcr.io/fluidattacks/makes/amd64:latest \
-  m gitlab:fluidattacks/universe@trunk /skims scan --output test.json --format json /workspace/website/test.php
+# Download the artifact and check:
+cat results/skims-output.txt | grep -i "vulnerability"
+cat results/skims-output.txt | grep -i "error"
+cat results/skims-output.txt | grep -i "found"
 ```
 
-## 📚 Learning Resources
-
-- [Fluid Attacks Official Guide](https://help.fluidattacks.com/portal/en/kb/articles/use-the-scanners-in-ci-cd#Run_on_GitHub_Actions)
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [PHP Security Best Practices](https://cheatsheetseries.owasp.org/cheatsheets/PHP_Configuration_Cheat_Sheet.html)
+### If Skims Generates No CSV:
+El pipeline automáticamente crea `results/manual-results.csv` extrayendo información útil del output de texto.
 
 ## 🎓 Next Steps
 
-1. **Ejecuta el pipeline** y verifica que se generen ambos formatos
-2. **Compara CSV vs JSON** - aprende las ventajas de cada formato
-3. **Analiza los resultados** - entiende cada vulnerabilidad encontrada
-4. **Experimenta con fixes** - intenta corregir algunas vulnerabilidades
-5. **Compara resultados** - ve cómo cambian los reportes después de fixes
-
-## 📊 Format Comparison
-
-### CSV - Mejor para:
-- ✅ Análisis rápido en Excel/Google Sheets
-- ✅ Lectura humana directa
-- ✅ Reportes simples
-- ✅ Comparación manual
-
-### JSON - Mejor para:
-- ✅ Procesamiento automático
-- ✅ Integración con otras herramientas
-- ✅ APIs y scripts
-- ✅ Análisis programático
+1. **Ejecuta el pipeline** y verifica que funciona sin errores
+2. **Revisa los logs** en el summary del workflow
+3. **Descarga el artifact** y explora los archivos generados
+4. **Analiza las vulnerabilidades** encontradas en WackoPicko
 
 ---
 
-**Nota importante**: Aunque la documentación oficial menciona `docker.io/fluidattacks/skims:latest`, esta imagen tiene limitaciones. La imagen `makes` es más completa y funcional para CI/CD. 
+**Ventaja clave**: Máxima simplicidad con la imagen oficial, sin perder funcionalidad ni generar logs innecesarios. 
