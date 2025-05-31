@@ -1,5 +1,4 @@
-# Security Analysis Pipeline with Fluid Attacks Skims
-# This workflow runs security scans on every push and pull request
+# Security Analysis with Fluid Attacks
 name: Security Analysis
 
 # Define when this workflow should run
@@ -23,122 +22,35 @@ jobs:
     # Define the steps for this job
     steps:
       # Step 1: Download the source code to the runner
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      # Step 2: Run Fluid Attacks scan (CSV output)
+      - name: Skims scan (CSV output)
+        uses: docker://docker.io/fluidattacks/skims:latest
         with:
-          # Get full history for better analysis
-          fetch-depth: 0
+          args: skims scan --output results.csv .
 
-      # Step 2: List files to verify what we're scanning
-      - name: List files to scan
-        run: |
-          echo "Files in the repository:"
-          find . -name "*.php" -type f | head -10
-          echo "Content of test.php (first 10 lines):"
-          head -10 website/test.php || echo "test.php not found"
-
-      # Step 3: Run Fluid Attacks Skims security scanner
-      - name: Run Skims Security Analysis
-        # Use the official Fluid Attacks Makes image (which includes Skims)
-        uses: docker://ghcr.io/fluidattacks/makes/amd64:latest
+      # Step 3: Run Fluid Attacks scan (JSON output)
+      - name: Skims scan (JSON output)
+        uses: docker://docker.io/fluidattacks/skims:latest
         with:
-          # Use makes to run skims scan with our config file
-          args: m gitlab:fluidattacks/universe@trunk /skims scan ./.skims.yaml
+          args: skims scan --output results.json --format json .
 
-      # Step 4: List output files to see what was generated
-      - name: Check scan results
-        if: always()
-        run: |
-          echo "Files in current directory after scan:"
-          ls -la *.csv *.json || echo "No CSV or JSON files found"
-          echo "All files in directory:"
-          ls -la
-          echo "Content of any CSV files:"
-          cat *.csv || echo "No CSV files to display"
-
-      # Step 5: Try alternative scan without config file
-      - name: Run Skims without config (fallback)
-        if: always()
-        uses: docker://ghcr.io/fluidattacks/makes/amd64:latest
-        with:
-          args: m gitlab:fluidattacks/universe@trunk /skims scan --output results.csv .
-
-      # Step 6: Check fallback results
-      - name: Check fallback results
-        if: always()
-        run: |
-          echo "Checking for fallback results:"
-          ls -la results.csv || echo "No results.csv found"
-          cat results.csv || echo "No results.csv to display"
-
-      # Step 7: Upload any CSV files found
-      - name: Upload scan results
+      # Step 4: Upload CSV results
+      - name: Upload CSV results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: skims-security-report
-          path: |
-            *.csv
-            results.csv
+          name: security-report-csv
+          path: results.csv
           retention-days: 30
 
-      # Step 8: Upload any JSON files found
-      - name: Upload JSON Results
+      # Step 5: Upload JSON results
+      - name: Upload JSON results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: skims-json-report
-          path: "*.json"
+          name: security-report-json
+          path: results.json
           retention-days: 30
-
-      # Step 9: Comment results on Pull Request
-      - name: Comment PR with results
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            try {
-              const files = fs.readdirSync('.');
-              const csvFiles = files.filter(file => file.endsWith('.csv'));
-              const jsonFiles = files.filter(file => file.endsWith('.json'));
-              
-              let resultsFound = false;
-              let resultContent = '';
-              
-              // Try to read any CSV file and check for actual results
-              for (const csvFile of csvFiles) {
-                const content = fs.readFileSync(csvFile, 'utf8');
-                if (content.includes('vulnerability') || content.includes('finding') || content.length > 100) {
-                  resultsFound = true;
-                  resultContent += `📄 **${csvFile}**: ${content.length} characters\n`;
-                }
-              }
-              
-              const comment = `
-              ## 🔍 Security Scan Results
-              
-              Skims security analysis completed.
-              
-              📊 **Files generated:**
-              ${csvFiles.length > 0 ? `- CSV Reports: ${csvFiles.join(', ')}` : '❌ No CSV files generated'}
-              ${jsonFiles.length > 0 ? `- JSON Reports: ${jsonFiles.join(', ')}` : '❌ No JSON files generated'}
-              
-              ${resultsFound ? '✅ **Security findings detected**' : '⚠️ **No vulnerabilities found** (This may indicate a configuration issue)'}
-              
-              ${resultContent}
-              
-              📥 **Download results**: [Security Report Artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-              
-              ${resultsFound ? '⚠️ **Important**: Please review all security findings before merging.' : '🤔 **Note**: WackoPicko should have vulnerabilities. If none found, check configuration.'}
-              `;
-              
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: comment
-              });
-            } catch (error) {
-              console.log('Could not read results:', error);
-            }
