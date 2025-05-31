@@ -5,10 +5,6 @@
 # Namespace: Identifier for your project/organization
 namespace: wackopicko
 
-# Strict mode: BREAKS THE BUILD when vulnerabilities are found
-# This is ideal for CI/CD pipelines to prevent deployment of vulnerable code
-strict: true
-
 # Output configuration: Where and how to save scan results
 output:
   # Path where the results CSV file will be saved

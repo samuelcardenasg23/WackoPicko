@@ -11,7 +11,7 @@ jobs:
       - uses: docker://docker.io/fluidattacks/skims:latest
         name: skimsStandalone
         with:
-          args: skims scan skims-config.yaml
+          args: skims --strict scan skims-config.yaml
         # NOTE: We removed continue-on-error so the build FAILS when vulnerabilities are found
 
       # This step will ONLY run if NO vulnerabilities are found
