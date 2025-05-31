@@ -1,0 +1,94 @@
+# Skims Configuration File
+# This file configures how Skims analyzes your code for security vulnerabilities
+
+# Namespace for organizing results
+namespace: "wackopicko-security-scan"
+
+# Working directory (will be overridden by GitHub Actions)
+working_dir: "."
+
+# Output settings
+output:
+  # Format for the output reports
+  format: 
+    - json
+    - csv
+    - html
+
+# Include patterns - what to scan
+include:
+  - "**/*.php"      # All PHP files
+  - "**/*.js"       # JavaScript files
+  - "**/*.html"     # HTML files
+  - "**/*.sql"      # SQL files
+  - "**/Dockerfile" # Docker configuration
+  - "**/*.yaml"     # Configuration files
+  - "**/*.yml"      # Configuration files
+
+# Exclude patterns - what NOT to scan
+exclude:
+  - ".git/**"           # Git repository files
+  - "node_modules/**"   # Node.js dependencies
+  - "vendor/**"         # PHP dependencies
+  - "**/*.min.js"       # Minified JavaScript
+  - "**/*.min.css"      # Minified CSS
+  - "*.log"             # Log files
+
+# Security checks to perform
+checks:
+  # Enable application security checks
+  appsec: true
+  
+  # Enable DAST (Dynamic Application Security Testing)
+  dast: false  # Disabled for static analysis only
+  
+  # Enable SAST (Static Application Security Testing)
+  sast: true
+  
+  # Enable secret detection
+  secrets: true
+  
+  # Enable dependency vulnerability scanning
+  sca: true
+
+# Language-specific settings
+languages:
+  php:
+    # Enable PHP-specific security checks
+    enabled: true
+    # Check for common PHP vulnerabilities
+    checks:
+      - sql_injection
+      - xss
+      - path_traversal
+      - code_injection
+      - file_inclusion
+      - command_injection
+      - weak_crypto
+      - insecure_random
+  
+  javascript:
+    enabled: true
+    checks:
+      - xss
+      - prototype_pollution
+      - unsafe_eval
+
+# Severity levels to report
+severity:
+  # Report all severity levels
+  low: true
+  medium: true
+  high: true
+  critical: true
+
+# Additional settings
+settings:
+  # Maximum number of findings to report (0 = unlimited)
+  max_findings: 0
+  
+  # Timeout for analysis (in seconds)
+  timeout: 1800  # 30 minutes
+  
+  # Enable verbose logging
+  verbose: true 
