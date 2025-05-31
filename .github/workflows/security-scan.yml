@@ -5,37 +5,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@f095bcc56b7c2baf48f3ac70d6d6782f4f553222
-
-      # Run Skims security scan in strict mode
-      # This will FAIL the build if vulnerabilities are found
       - uses: docker://docker.io/fluidattacks/skims:latest
         name: skimsStandalone
         with:
-          args: skims --strict scan skims-config.yaml
-        # NOTE: We removed continue-on-error so the build FAILS when vulnerabilities are found
+          args: skims scan skims-config.yaml
 
-      # This step will ONLY run if NO vulnerabilities are found
-      - name: Build passed - No vulnerabilities found
-        if: success()
-        run: echo "✅ Security scan passed! No vulnerabilities detected."
-
-      # Upload the CSV results even if the scan failed
-      # This runs regardless of whether vulnerabilities were found
       - name: Upload security scan results
         uses: actions/upload-artifact@v4
-        if: always() # ALWAYS run this step (success or failure)
+        if: always()
         with:
           name: security-scan-results-csv
           path: |
             Fluid-Attacks-Results.csv
             **/*.csv
-          retention-days: 30 # Keep results for 30 days
-
-      # Show failure message if vulnerabilities were found
-      - name: Build failed - Vulnerabilities detected
-        if: failure()
-        run: |
-          echo "❌ SECURITY VULNERABILITIES DETECTED!"
-          echo "📊 Check the uploaded CSV artifact for detailed vulnerability report"
-          echo "🔍 Download 'security-scan-results-csv' from the Actions tab"
-          exit 1
+          retention-days: 30

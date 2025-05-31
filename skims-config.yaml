@@ -1,29 +1,19 @@
-# Skims Configuration File
-# This file configures how Skims performs security scanning and exports results
 # Following Fluid Attacks guide: https://help.fluidattacks.com/portal/en/kb/articles/scan-with-a-configuration-file
 
-# Namespace: Identifier for your project/organization
 namespace: wackopicko
 
-# Output configuration: Where and how to save scan results
+strict: true
+
 output:
-  # Path where the results CSV file will be saved
   file_path: ./Fluid-Attacks-Results.csv
-  # Format for the output file - must be CSV for compatibility
   format: CSV
 
-# Working directory: Root directory to scan from
 working_dir: .
 
-# What to include in the scan - corrected format
 include:
-  # Scan all files in the current directory recursively
   - .
-  
-# Security checks to perform
-# These are the main vulnerability types that Skims will check for
+
 checks:
-  # Web application vulnerabilities
   - F001  # SQL Injection
   - F004  # Cross-Site Scripting (XSS)
   - F008  # Insecure direct object references
@@ -130,5 +120,4 @@ checks:
   - F416  # Insecure security protocols
   - F418  # Missing security compliance
 
-# Language for report messages
 language: EN 
