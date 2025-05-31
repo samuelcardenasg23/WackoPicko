@@ -1,57 +1,11 @@
-# Security scanning pipeline using Fluid Attacks Skims
-# This workflow runs security scans on every push and pull request
-name: Security Scan with Skims
-
-# Trigger the workflow on push to any branch and on pull requests
-on:
-  push:
-    branches: ["*"] # Run on all branches
-  pull_request:
-    branches: ["*"] # Run on pull requests to any branch
-
-# Define the jobs that will run
+name: Standalone CLI
+on: [push, pull_request]
 jobs:
-  # Job name: security scanning using Skims in standalone mode
-  security-scan:
-    # Use the latest Ubuntu runner (virtual machine)
+  machineStandalone:
     runs-on: ubuntu-latest
-
-    # Define the permissions for this job (security best practice)
-    permissions:
-      contents: read # Permission to read repository contents
-      security-events: write # Permission to upload security results
-
-    # Steps that will be executed in this job
     steps:
-      # Step 1: Checkout the repository code
-      # This downloads your code to the runner so it can be scanned
-      - name: Checkout repository
-        uses: actions/checkout@v4 # Using latest stable version
+      - uses: actions/checkout@f095bcc56b7c2baf48f3ac70d6d6782f4f553222
+      - uses: docker://docker.io/fluidattacks/skims:latest
+        name: skimsStandalone
         with:
-          # Fetch full history for better analysis
-          fetch-depth: 0
-
-      # Step 2: Run Skims security scanner
-      # This uses the Fluid Attacks Skims Docker container to scan the code
-      - name: Run Skims Security Scanner
-        uses: docker://docker.io/fluidattacks/skims:latest
-        with:
-          # Command arguments for Skims
-          # /github/workspace is where GitHub Actions mounts your code
           args: skims scan /github/workspace
-
-        # Continue the workflow even if vulnerabilities are found
-        # This allows you to see the results without failing the build
-        continue-on-error: true
-
-      # Step 3: Upload results (optional but recommended)
-      # This step would upload scan results as artifacts
-      - name: Upload scan results
-        uses: actions/upload-artifact@v4
-        if: always() # Run this step even if previous steps failed
-        with:
-          name: security-scan-results
-          path: |
-            **/*.sarif
-            **/*.json
-          retention-days: 30 # Keep results for 30 days
