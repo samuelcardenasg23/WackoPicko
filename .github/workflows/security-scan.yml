@@ -1,3 +1,5 @@
+# Following Fluid Attacks guide: https://help.fluidattacks.com/portal/en/kb/articles/use-the-scanners-in-ci-cd#Run_on_GitHub_Actions
+
 name: Standalone CLI
 on: [push, pull_request]
 jobs:
