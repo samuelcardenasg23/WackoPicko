@@ -1,93 +1,61 @@
-# Skims Configuration File
-# This file configures how Skims analyzes your code for security vulnerabilities
+# Skims Configuration File for WackoPicko Security Scan
+# Based on working configuration from Fluid Attacks community
 
 # Namespace for organizing results
 namespace: "wackopicko-security-scan"
 
-# Working directory - current directory
+# Working directory
 working_dir: "."
 
-# Output configuration
+# Output settings
 output:
-  # Output file name
-  file_path: "security-scan-results.csv"
-  # Format for the output reports  
+  file_path: "wackopicko-security-results.csv"
   format: "CSV"
 
-# Include patterns - what to scan
-include:
-  - "**/*.php"      # All PHP files
-  - "**/*.js"       # JavaScript files
-  - "**/*.html"     # HTML files
-  - "**/*.sql"      # SQL files
-  - "**/Dockerfile" # Docker configuration
-  - "**/*.yaml"     # Configuration files
-  - "**/*.yml"      # Configuration files
-
-# Exclude patterns - what NOT to scan
-exclude:
-  - ".git/**"           # Git repository files
-  - "node_modules/**"   # Node.js dependencies
-  - "vendor/**"         # PHP dependencies
-  - "**/*.min.js"       # Minified JavaScript
-  - "**/*.min.css"      # Minified CSS
-  - "*.log"             # Log files
-
-# Security checks to perform
+# Checks to enable
 checks:
-  # Enable application security checks
-  appsec: true
-  
-  # Enable DAST (Dynamic Application Security Testing)
-  dast: false  # Disabled for static analysis only
-  
-  # Enable SAST (Static Application Security Testing)
-  sast: true
-  
-  # Enable secret detection
-  secrets: true
-  
-  # Enable dependency vulnerability scanning
-  sca: true
+  F001: true  # SQL Injection
+  F004: true  # Cross-Site Scripting (XSS)
+  F008: true  # Path Traversal
+  F015: true  # Weak Random
+  F016: true  # Insecure Random
+  F021: true  # Path Injection
+  F024: true  # HTTP Response Splitting
+  F034: true  # Unvalidated Redirect
+  F037: true  # Unsafe HTTP Methods
+  F042: true  # LDAP Injection
+  F052: true  # Weak Hash
+  F063: true  # Unencrypted Channel
+  F070: true  # Weak Credentials
+  F079: true  # Host Header Injection
+  F085: true  # XML External Entities
+  F091: true  # Command Injection
+  F096: true  # Insecure Service
+  F097: true  # Insecure Connection
+  F112: true  # Missing HTTP Security Headers
+  F127: true  # Open Redirect
+  F134: true  # Weak Secret Generation
+  F143: true  # Unverified SSL
+  F152: true  # Sensitive Data in URL
+  F153: true  # Sensitive Data in GET
+  F160: true  # Weak Cipher
 
-# Language-specific settings
-languages:
-  php:
-    # Enable PHP-specific security checks
-    enabled: true
-    # Check for common PHP vulnerabilities
-    checks:
-      - sql_injection
-      - xss
-      - path_traversal
-      - code_injection
-      - file_inclusion
-      - command_injection
-      - weak_crypto
-      - insecure_random
-  
-  javascript:
-    enabled: true
-    checks:
-      - xss
-      - prototype_pollution
-      - unsafe_eval
+# Paths to include (relative to working_dir)
+include:
+  - "website/"
+  - "."
 
-# Severity levels to report
-severity:
-  # Report all severity levels
-  low: true
-  medium: true
-  high: true
-  critical: true
+# Paths to exclude
+exclude:
+  - ".git/"
+  - "node_modules/"
+  - "vendor/"
+
+# APK specific settings (not applicable but won't hurt)
+apk:
+  exclude: []
+  include: []
 
 # Additional settings
-settings:
-  # Maximum number of findings to report (0 = unlimited)
-  max_findings: 0
-  
-  # Timeout for analysis (in seconds)
-  timeout: 1800  # 30 minutes
-  
-  # Enable verbose logging
-  verbose: true 
+multifile: false
+timeout: 300 
